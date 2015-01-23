@@ -1,0 +1,15 @@
+*~
+*.dot
+*.ps
+*.swp
+*.swo
+__pycache__
+build/
+dist/
+*.egg-info/
+.coverage
+htmlcov
+stanford-postagger-full-2014-10-26/
+stanford-postagger-full-2014-10-26.zip
+parsetab.py
+parser.out
