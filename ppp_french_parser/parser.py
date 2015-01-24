@@ -104,7 +104,7 @@ def t_error(t):
     raise ParserException('Illegal string `%r`' % t.value)
 
 def t_PONCTUATION(t):
-    '''[^ ]*_PUNC '''
+    '''[^ "]*_PUNC '''
     return None
 
 def t_MOT_INTERROGATIF(t):
@@ -116,8 +116,14 @@ def t_DETERMINANT(t):
     t.value = Determinant(t.value.rsplit('_', 1)[0])
     return t
 def t_NOM(t):
-    '''[^ ]*_(NC|NPP) '''
+    '''[^ ]*_(NC|NPP)'''
     t.value = Nom(t.value.rsplit('_', 1)[0])
+    return t
+def t_quotes(t):
+    '''"_PUNC (?P<content>[^"]*) "_PUNC'''
+    t.type = 'NOM'
+    c = lexer.lexmatch.group('content')
+    t.value = ' '.join(x.rsplit('_', 1)[0] for x in c.split(' ')).strip()
     return t
 def t_VERBE(t):
     '''[^ -]*_(V|VPP)[ ]'''
