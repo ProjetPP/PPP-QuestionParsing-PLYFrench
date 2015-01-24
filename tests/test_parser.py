@@ -26,3 +26,5 @@ class ParserTestCase(unittest.TestCase):
                 T(T(T(R('États-Unis'), R('président'), M()), R('femme'), M()), R('mari'), M()))
         self.assertEqual(parser.parse('Qui sont les filles de la femme du président des États-Unis ?'),
                 T(T(T(R('États-Unis'), R('président'), M()), R('femme'), M()), R('filles'), M()))
+        self.assertEqual(parser.parse('Qui sont les filles du mari de la femme du président des États-Unis ?'),
+                T(T(T(T(R('États-Unis'), R('président'), M()), R('femme'), M()), R('mari'), M()), R('filles'), M()))
