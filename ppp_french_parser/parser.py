@@ -83,6 +83,8 @@ class Nom(str):
     pass
 class Determinant(str):
     pass
+class IntroCompl(str):
+    pass
 class Verbe(str):
     pass
 class VerbeSujet(namedtuple('_VS', 'verbe sujet')):
@@ -92,8 +94,8 @@ class MotInterrogatif(str):
 class Hole:
     pass
 
-tokens = ('MOT_INTERROGATIF', 'DETERMINANT', 'NOM_COMMUN', 'VERBE',
-        'VERBE_SUJET',
+tokens = ('MOT_INTERROGATIF', 'DETERMINANT', 'NOM', 'VERBE',
+        'VERBE_SUJET', 'INTRO_COMPL',
         )
 
 t_ignore = ' \n'
@@ -106,15 +108,15 @@ def t_PONCTUATION(t):
     return None
 
 def t_MOT_INTERROGATIF(t):
-    '''[^ ]*_ADJWH '''
+    '''[^ ]*_(ADJWH|PROWH) '''
     t.value = MotInterrogatif(t.value.rsplit('_', 1)[0])
     return t
 def t_DETERMINANT(t):
     '''[^ ]*_DET '''
     t.value = Determinant(t.value.rsplit('_', 1)[0])
     return t
-def t_NOM_COMMUN(t):
-    '''[^ ]*_NC '''
+def t_NOM(t):
+    '''[^ ]*_(NC|NPP) '''
     t.value = Nom(t.value.rsplit('_', 1)[0])
     return t
 def t_VERBE(t):
@@ -127,10 +129,18 @@ def t_VERBE_SUJET(t):
     (verb, noun) = t.value.split('-', 1)
     t.value = VerbeSujet(Verbe(verb), Nom(noun))
     return t
+def t_INTRO_COMPL(t):
+    '''[^ ]*_P '''
+    t.value = IntroCompl(t.value.rsplit('_', 1)[0])
+    return t
 
 lexer = lex.lex()
 
-class GroupeNominal(namedtuple('_GN', 'determinant adjectifs nom')):
+precedence = (
+        ('left', 'INTRO_COMPL'),
+        )
+
+class GroupeNominal(namedtuple('_GN', 'determinant qualificateurs nom')):
     pass
 
 def det_to_subject(det):
@@ -142,34 +152,54 @@ def det_to_subject(det):
     elif det in ('son', 'sa', 'ses', 'lui', 'elle', 'il', 'iel'):
         return Resource('iel')
     else:
-        # TODO
-        return det
-def gn_to_resource(gn):
-    return Resource(gn.nom)
+        return None
 def gn_to_subject(gn):
-    return det_to_subject(gn.determinant)
+    if gn.determinant:
+        return det_to_subject(gn.determinant)
+    else:
+        return None
 def verbe_to_resource(v):
     return Resource(v)
+def gn_to_triple(gn):
+    if gn.qualificateurs:
+        # TODO
+        return Triple(
+                gn_to_triple(gn.qualificateurs[0]),
+                Resource(gn.nom),
+                Missing())
+    elif gn_to_subject(gn):
+        return Triple(
+                gn_to_subject(gn),
+                Resource(gn.nom),
+                Missing())
+    else:
+        return Resource(gn.nom)
 
-def p_groupe_nominal(t):
-    '''groupe_nominal : DETERMINANT NOM_COMMUN'''
+def p_groupe_nominal_nom(t):
+    '''groupe_nominal : NOM'''
+    t[0] = GroupeNominal(None, [], t[1])
+def p_groupe_nominal_det_nom(t):
+    '''groupe_nominal : DETERMINANT NOM'''
     t[0] = GroupeNominal(t[1], [], t[2])
+def p_groupe_nominal_det_nom_compl(t):
+    '''groupe_nominal : groupe_nominal INTRO_COMPL groupe_nominal'''
+    t[0] = GroupeNominal(t[1].determinant, [t[3]], t[1].nom)
 
 def p_question_verb_first(t):
     '''question : MOT_INTERROGATIF VERBE groupe_nominal'''
     word = t[1].lower()
-    if word in ('quel', 'quelle'):
+    if word in ('quel', 'quelle', 'qui'):
         if is_etre(t[2]):
-            t[0] = Triple(gn_to_subject(t[3]), gn_to_resource(t[3]), Missing())
+            t[0] = gn_to_triple(t[3]) 
         else:
             t[0] = Triple(gn_to_resource(t[3]), verbe_to_resource(t[2]), Missing())
     else:
         assert False, word
 
 def p_question_noun_first(t):
-    '''question : MOT_INTERROGATIF NOM_COMMUN VERBE_SUJET'''
+    '''question : MOT_INTERROGATIF NOM VERBE_SUJET'''
     word = t[1].lower()
-    if word in ('quel', 'quelle'):
+    if word in ('quel', 'quelle', 'qui'):
         if is_avoir(t[3].verbe) or is_etre(t[3].verbe):
             t[0] = Triple(det_to_subject(t[3].sujet), Resource(t[2]),
                     Missing())
@@ -185,7 +215,7 @@ def p_error(t):
         raise ParserException("Syntax error at '%s' (%s)" % 
                 (t.value, t.type))
 
-parser = yacc.yacc(start='question', debug=0, write_tables=0)
+parser = yacc.yacc(start='question', write_tables=0)
 
 tagger_options = [
         '/usr/lib/jvm/java-8-openjdk-amd64/bin/java', '-mx300m',
