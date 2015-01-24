@@ -137,7 +137,7 @@ def t_INTRO_COMPL(t):
 lexer = lex.lex()
 
 precedence = (
-        ('left', 'INTRO_COMPL'),
+        ('right', 'INTRO_COMPL'),
         )
 
 class GroupeNominal(namedtuple('_GN', 'determinant qualificateurs nom')):
@@ -178,9 +178,12 @@ def gn_to_triple(gn):
 def p_groupe_nominal_nom(t):
     '''groupe_nominal : NOM'''
     t[0] = GroupeNominal(None, [], t[1])
-def p_groupe_nominal_det_nom(t):
-    '''groupe_nominal : DETERMINANT NOM'''
+def p_groupe_nominal_simple(t):
+    '''groupe_nominal_simple : DETERMINANT NOM'''
     t[0] = GroupeNominal(t[1], [], t[2])
+def p_groupe_nominal_base(t):
+    '''groupe_nominal : groupe_nominal_simple'''
+    t[0] = t[1]
 def p_groupe_nominal_det_nom_compl(t):
     '''groupe_nominal : groupe_nominal INTRO_COMPL groupe_nominal'''
     t[0] = GroupeNominal(t[1].determinant, [t[3]], t[1].nom)
