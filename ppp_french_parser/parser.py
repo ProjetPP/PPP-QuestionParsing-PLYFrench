@@ -1,4 +1,4 @@
-import tempfile
+import threading
 import subprocess
 from ply import lex, yacc
 from collections import namedtuple
@@ -249,21 +249,33 @@ tagger_options = [
         '/usr/lib/jvm/java-8-openjdk-amd64/bin/java', '-mx300m',
         '-classpath', 'stanford-postagger-full-2014-10-26/stanford-postagger.jar',
         'edu.stanford.nlp.tagger.maxent.MaxentTagger', '-model',
-        'stanford-postagger-full-2014-10-26/models/french.tagger', '-textFile',
+        'stanford-postagger-full-2014-10-26/models/french.tagger',
         ]
-def tag(s):
-    with tempfile.NamedTemporaryFile('w') as fd:
-        fd.write(s)
-        fd.seek(0)
-        s = subprocess.check_output(tagger_options + [fd.name],
-                stderr=subprocess.DEVNULL)
-    return s.decode()
+class Tagger:
+    """Runs an instance of a POS tagger and provides it through the 'tag'
+    method.
+    Thread-safe."""
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.process = subprocess.Popen(tagger_options,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                universal_newlines=True)
+
+    def tag(self, s):
+        with self.lock:
+            self.process.stdin.write(s + '\n')
+            self.process.stdin.flush()
+            return self.process.stdout.readline()
+
+tagger = Tagger()
 
 def to_datamodel(t):
     return t
 
 def parse(s):
-    s = tag(s) + ' '
+    s = tagger.tag(s) + ' '
     """
     lexer.input(s)
     while True:
