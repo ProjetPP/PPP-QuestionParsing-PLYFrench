@@ -1,6 +1,8 @@
+import itertools
 import threading
 import subprocess
 from ply import lex, yacc
+from nltk.corpus import wordnet
 from collections import namedtuple
 
 from ppp_datamodel import Resource, Triple, Missing
@@ -170,8 +172,6 @@ def gn_to_subject(gn):
         return det_to_subject(gn.determinant)
     else:
         return None
-def verbe_to_resource(v):
-    return Resource(v)
 def gn_to_triple(gn):
     if gn.qualificateurs:
         # TODO
@@ -186,6 +186,33 @@ def gn_to_triple(gn):
                 Missing())
     else:
         return Resource(gn.nom)
+
+def noun_to_predicate(noun):
+    l = wordnet.synsets(noun, pos='n', lang='fra')
+    fr_nouns = itertools.chain.from_iterable(
+            x.lemma_names('fra') for x in l)
+    fr_nouns = list(fr_nouns)
+    if fr_nouns:
+        return Resource(fr_nouns[0]) # TODO multiple
+    else:
+        return Resource(noun)
+def verb_to_predicate(verb):
+    l = wordnet.synsets(verb, lang='fra')
+    # XXX maybe add pos='v'? (note: wouldn't work for others than infinitive)
+    lemmas = itertools.chain.from_iterable(
+            x.lemmas() for x in l if x.pos() == 'v' or True)
+    drf = itertools.chain.from_iterable(
+            x.derivationally_related_forms() for x in lemmas)
+    nouns = (
+            x for x in drf
+            if x.synset().pos() == 'n')
+    fr_nouns = itertools.chain.from_iterable(
+            x.synset().lemma_names('fra') for x in nouns)
+    fr_nouns = list(fr_nouns)
+    if fr_nouns:
+        return Resource(fr_nouns[0]) # TODO multiple
+    else:
+        return Resource(verb)
 
 def p_verbe_simple(t):
     '''verbe : VERBE'''
@@ -220,7 +247,10 @@ def p_question_verb_first(t):
         if is_etre(t[2]):
             t[0] = gn_to_triple(t[3]) 
         else:
-            t[0] = Triple(gn_to_triple(t[3]), verbe_to_resource(t[2]), Missing())
+            t[0] = Triple(
+                    gn_to_triple(t[3]),
+                    verb_to_predicate(t[2]),
+                    Missing())
     else:
         assert False, word
 
@@ -229,7 +259,8 @@ def p_question_noun_first(t):
     word = t[1].lower()
     if word in ('quel', 'quelle', 'qui'):
         if is_avoir(t[3].verbe) or is_etre(t[3].verbe):
-            t[0] = Triple(det_to_subject(t[3].sujet), Resource(t[2]),
+            t[0] = Triple(det_to_subject(t[3].sujet),
+                    noun_to_predicate(t[2]),
                     Missing())
         else:
             assert False, t[3]
