@@ -95,7 +95,7 @@ class Hole:
     pass
 
 tokens = ('MOT_INTERROGATIF', 'DETERMINANT', 'NOM', 'VERBE',
-        'VERBE_SUJET', 'INTRO_COMPL',
+        'VERBE_SUJET', 'INTRO_COMPL', 'GROUPE_NOMINAL',
         )
 
 t_ignore = ' \n'
@@ -120,7 +120,7 @@ def t_NOM(t):
     t.value = Nom(t.value.rsplit('_', 1)[0])
     return t
 def t_VERBE(t):
-    '''[^ ]*_V[ ]'''
+    '''[^ -]*_(V|VPP)[ ]'''
     t.value = Verbe(t.value.rsplit('_', 1)[0])
     return t
 def t_VERBE_SUJET(t):
@@ -132,6 +132,12 @@ def t_VERBE_SUJET(t):
 def t_INTRO_COMPL(t):
     '''[^ ]*_P '''
     t.value = IntroCompl(t.value.rsplit('_', 1)[0])
+    return t
+def t_GROUPE_NOMINAL(t):
+    '''[^ ]*['’][^ ]*_VINF '''
+    t.value = t.value.rsplit('_', 1)[0]
+    (det, noun) = t.value.replace('’', '\'').split('\'', 1)
+    t.value = GroupeNominal(Determinant(det), [], Nom(noun))
     return t
 
 lexer = lex.lex()
@@ -175,9 +181,22 @@ def gn_to_triple(gn):
     else:
         return Resource(gn.nom)
 
+def p_verbe_simple(t):
+    '''verbe : VERBE'''
+    t[0] = t[1]
+def p_verbe_compose(t):
+    '''verbe : VERBE VERBE'''
+    if is_etre(t[1]) or is_avoir(t[1]):
+        t[0] = Verbe(t[2])
+    else:
+        assert False
+
 def p_groupe_nominal_nom(t):
     '''groupe_nominal : NOM'''
     t[0] = GroupeNominal(None, [], t[1])
+def p_groupe_nominal_gn(t):
+    '''groupe_nominal : GROUPE_NOMINAL'''
+    t[0] = t[1]
 def p_groupe_nominal_simple(t):
     '''groupe_nominal_simple : DETERMINANT NOM'''
     t[0] = GroupeNominal(t[1], [], t[2])
@@ -189,13 +208,13 @@ def p_groupe_nominal_det_nom_compl(t):
     t[0] = GroupeNominal(t[1].determinant, [t[3]], t[1].nom)
 
 def p_question_verb_first(t):
-    '''question : MOT_INTERROGATIF VERBE groupe_nominal'''
+    '''question : MOT_INTERROGATIF verbe groupe_nominal'''
     word = t[1].lower()
     if word in ('quel', 'quelle', 'qui'):
         if is_etre(t[2]):
             t[0] = gn_to_triple(t[3]) 
         else:
-            t[0] = Triple(gn_to_resource(t[3]), verbe_to_resource(t[2]), Missing())
+            t[0] = Triple(gn_to_triple(t[3]), verbe_to_resource(t[2]), Missing())
     else:
         assert False, word
 
@@ -238,4 +257,13 @@ def to_datamodel(t):
     return t
 
 def parse(s):
-    return to_datamodel(parser.parse(tag(s) + ' ', lexer=lexer))
+    s = tag(s) + ' '
+    """
+    lexer.input(s)
+    while True:
+        tok = lexer.token()
+        if not tok:
+            break
+        else:
+            print(tok)"""
+    return to_datamodel(parser.parse(s, lexer=lexer))
