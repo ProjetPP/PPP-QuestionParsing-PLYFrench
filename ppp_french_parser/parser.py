@@ -279,6 +279,7 @@ parser = yacc.yacc(start='question', write_tables=0)
 
 interpreters = [
         '/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java',
+        '/usr/lib/jvm/java-8-oracle/bin/java',
         '/usr/local/bin/java',
         '/usr/bin/java',
         ]
@@ -302,6 +303,7 @@ class Tagger:
         else:
             self.start('/usr/bin/env java')
     def start(self, interpreter):
+        print('Using interpreter: %s' % interpreter)
         self.process = subprocess.Popen(
                 [interpreter] + tagger_options,
                 stdin=subprocess.PIPE,
