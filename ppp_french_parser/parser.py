@@ -119,7 +119,7 @@ def t_DETERMINANT(t):
     t.value = Determinant(t.value.rsplit('_', 1)[0])
     return t
 def t_NOM(t):
-    '''[^ ]*_(NC|NPP)'''
+    '''[^ ]*_(N|NC|NPP)[ ]'''
     t.value = Nom(t.value.rsplit('_', 1)[0])
     return t
 def t_quotes(t):
@@ -142,8 +142,8 @@ def t_INTRO_COMPL(t):
     '''[^ ]*_P '''
     t.value = IntroCompl(t.value.rsplit('_', 1)[0])
     return t
-def t_GROUPE_NOMINAL(t):
-    '''[^ ]*['’][^ ]*_VINF '''
+def t_GROUPE_NOMINAL(t): # Stupid tagger
+    '''[^ ]*['’][^ ]*_(VINF|ADJ) '''
     t.value = t.value.rsplit('_', 1)[0]
     (det, noun) = t.value.replace('’', '\'').split('\'', 1)
     t.value = GroupeNominal(Determinant(det), [], Nom(noun))

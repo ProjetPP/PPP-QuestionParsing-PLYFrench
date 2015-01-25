@@ -31,8 +31,10 @@ class ParserTestCase(unittest.TestCase):
 
     def testApostrophe(self):
         self.assertEqual(parser.parse('Qui a écrit l\'huître ?'),
-                T(R('huître'), R('auteur'), M())) # TODO: nounify correctly
+                T(R('huître'), R('auteur'), M()))
+        self.assertEqual(parser.parse('Qui est l\'auteur de Le Pain ?'),
+                T(R('Pain'), R('auteur'), M()))
 
     def testQuotes(self):
         self.assertEqual(parser.parse('Qui a écrit « Le Petit Prince » ?'),
-                T(R('Le Petit Prince'), R('auteur'), M())) # TODO: nounify correctly
+                T(R('Le Petit Prince'), R('auteur'), M()))
