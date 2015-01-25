@@ -297,15 +297,17 @@ class Tagger:
         self.lock = threading.Lock()
         for interpreter in interpreters:
             if os.path.isfile(interpreter):
-                self.process = subprocess.Popen(
-                        [interpreter] + tagger_options,
-                        stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.DEVNULL,
-                        universal_newlines=True)
+                self.start(interpreter)
                 break
         else:
-            assert False, 'No Java 8 interpreter found.'
+            self.start('/usr/bin/env java')
+    def start(self, interpreter):
+        self.process = subprocess.Popen(
+                [interpreter] + tagger_options,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                universal_newlines=True)
 
     def tag(self, s):
         with self.lock:
