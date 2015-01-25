@@ -38,3 +38,7 @@ class ParserTestCase(unittest.TestCase):
     def testQuotes(self):
         self.assertEqual(parser.parse('Qui a écrit « Le Petit Prince » ?'),
                 T(R('Le Petit Prince'), R('auteur'), M()))
+
+    def testLocation(self):
+        self.assertEqual(parser.parse('Où est la France ?'),
+                T(R('France'), R('localisation'), M()))

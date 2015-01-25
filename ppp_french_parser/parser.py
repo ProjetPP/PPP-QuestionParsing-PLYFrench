@@ -111,7 +111,7 @@ def t_PONCTUATION(t):
     return None
 
 def t_MOT_INTERROGATIF(t):
-    '''[^ ]*_(ADJWH|PROWH) '''
+    '''[^ ]*_(ADVWH|ADJWH|PROWH) '''
     t.value = MotInterrogatif(t.value.rsplit('_', 1)[0])
     return t
 def t_DETERMINANT(t):
@@ -252,6 +252,14 @@ def p_question_verb_first(t):
                     gn_to_triple(t[3]),
                     verb_to_predicate(t[2]),
                     Missing())
+    elif word in ('où',):
+        if is_etre(t[2]):
+            t[0] = Triple(
+                    gn_to_triple(t[3]),
+                    Resource('localisation'),
+                    Missing())
+        else:
+            assert False, t[2]
     else:
         assert False, word
 
