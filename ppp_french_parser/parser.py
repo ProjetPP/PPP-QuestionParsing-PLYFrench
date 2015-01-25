@@ -31,57 +31,6 @@ def is_avoir(v):
     else:
         return False
 
-# from https://web.archive.org/web/20140724023431/http://www.computing.dcu.ie/~acahill/tagset.html
-"""
-tags = {
-        'CC': 'COORDINATING_CONJUNCTION',
-        'CD': 'CARDINAL_NUMBER',
-        'DT': 'DETERMINER',
-        'EX': 'EXISTENTIAL_THERE',
-        'FW': 'FOREIGN_WORD',
-        'IN': 'P_OR_S_CONJUNCTION', # PREPOSITION_OR_SUBORDINATING_CONJUNCTION
-        'JJ': 'ADJECTIVE',
-        'JJR': 'COMPARATIVE_ADJECTIVE',
-        'JJS': 'SUPERLATIVE_ADJECTIVE',
-        'LS': 'LIST_ITEM_MARKER',
-        'MD': 'MODAL',
-        'NN': 'PLURAL_NOUN',
-        'NNP': 'PROPER_SINGULAR_NOUN',
-        'NNPS': 'PROPER_PLURAL_NOUN',
-        'NNS': 'PROPER_NOUN',
-        'PDT': 'PREDETERMINER',
-        'POS': 'POSSESSIVE_ENDING',
-        'PRP': 'PERSONAL_PRONOUN',
-        'PRP$': 'POSSIVE_PRONOUN',
-        'RB': 'ADVERBE',
-        'RBR': 'COMPARATIVE_ADVERB',
-        'RP': 'PARTICLE',
-        'SYM': 'SYMBOL',
-        'TO': 'TO',
-        'UH': 'INTERJECTION',
-        'VB': 'BASE_VERB',
-        'VBD': 'PAST_VERB',
-        'VBG': 'GERUND_VERB',
-        'VBN': 'PAST_PARTICIPLE_VERB',
-        'VBP': 'SINGULAR_VERB',
-        'VBZ': 'SINGULAR_VERB',
-        'WDT': 'WH_DETERMINER',
-        'WP': 'WH_PRONOUN',
-        'WP$': 'POSSESSIVE_WH_PRONOUN',
-        'WRB': 'WH_ADVERB',
-        }
-"""
-
-"""
-tags = {
-        'ADJWH': 'MOT_INTERROGATIF',
-        'DET': 'DETERMINANT',
-        'NC': 'NOM_COMMUN',
-        'V': 'VERBE',
-        #'PUNC': 'PONCTUATION',
-       }
-"""
-
 class Nom(str):
     pass
 class Determinant(str):
@@ -333,6 +282,7 @@ def to_datamodel(t):
 def parse(s):
     s = tagger.tag(s) + ' '
     """
+    # Useful for debugging the lexer
     lexer.input(s)
     while True:
         tok = lexer.token()
