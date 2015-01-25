@@ -258,7 +258,12 @@ def p_groupe_nominal_base(t):
     t[0] = t[1]
 def p_groupe_nominal_det_nom_compl(t):
     '''groupe_nominal : groupe_nominal INTRO_COMPL groupe_nominal'''
-    t[0] = GroupeNominal(t[1].article, [t[3]], t[1].nom)
+    if t[1].nom.lower() in ('date', 'lieu') and t[3].qualificateurs:
+        # Compress stuff like « date de naissance »
+        t[0] = GroupeNominal(t[1].article, t[3].qualificateurs,
+                '%s de %s' % (t[1].nom, t[3].nom))
+    else:
+        t[0] = GroupeNominal(t[1].article, [t[3]], t[1].nom)
 
 def p_question_verb_first(t):
     '''question : MOT_INTERROGATIF verbe groupe_nominal'''
@@ -347,9 +352,6 @@ class Tagger:
 
 tagger = Tagger()
 
-def to_datamodel(t):
-    return t
-
 def parse(s):
     s = tagger.tag(s) + ' '
     """
@@ -361,4 +363,4 @@ def parse(s):
             break
         else:
             print(tok)"""
-    return to_datamodel(parser.parse(s, lexer=lexer))
+    return parser.parse(s, lexer=lexer)

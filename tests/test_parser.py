@@ -52,3 +52,11 @@ class ParserTestCase(unittest.TestCase):
                 T(R('France'), R('localisation'), M()))
         self.assertEqual(parser.parse('Où est la capitale de la France ?'),
                 T(T(R('France'), R('capitale'), M()), R('localisation'), M()))
+
+    def testComposedPredicates(self):
+        self.assertEqual(parser.parse('Quelle est la date de naissance de Obama ?'),
+                T(R('Obama'), R('date de naissance'), M()))
+        self.assertEqual(parser.parse('Quelle est la date de naissance du président ?'),
+                T(R('président'), R('date de naissance'), M()))
+        self.assertEqual(parser.parse('Quelle est la date de naissance du président des États-Unis ?'),
+                T(T(R('États-Unis'), R('président'), M()), R('date de naissance'), M()))
