@@ -1,3 +1,4 @@
+import os
 import itertools
 import threading
 import subprocess
@@ -276,8 +277,14 @@ def p_error(t):
 
 parser = yacc.yacc(start='question', write_tables=0)
 
+interpreters = [
+        '/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java',
+        '/usr/local/bin/java',
+        '/usr/bin/java',
+        ]
+
 tagger_options = [
-        '/usr/lib/jvm/java-8-openjdk-amd64/bin/java', '-mx300m',
+        '-mx300m',
         '-classpath', 'stanford-postagger-full-2014-10-26/stanford-postagger.jar',
         'edu.stanford.nlp.tagger.maxent.MaxentTagger', '-model',
         'stanford-postagger-full-2014-10-26/models/french.tagger',
@@ -288,11 +295,17 @@ class Tagger:
     Thread-safe."""
     def __init__(self):
         self.lock = threading.Lock()
-        self.process = subprocess.Popen(tagger_options,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                universal_newlines=True)
+        for interpreter in interpreters:
+            if os.path.isfile(interpreter):
+                self.process = subprocess.Popen(
+                        [interpreter] + tagger_options,
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        universal_newlines=True)
+                break
+        else:
+            assert False, 'No Java 8 interpreter found.'
 
     def tag(self, s):
         with self.lock:
