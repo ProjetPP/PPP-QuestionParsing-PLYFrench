@@ -329,16 +329,19 @@ class Tagger:
     Thread-safe."""
     def __init__(self):
         self.lock = threading.Lock()
+        self.process = None
+
+    def select_interpreter(self):
         for interpreter in interpreters:
             if os.path.isfile(interpreter):
-                self.start(interpreter)
-                break
+                return [interpreter]
         else:
-            self.start('/usr/bin/env java')
-    def start(self, interpreter):
+            ['/usr/bin/env', 'java']
+    def start(self):
+        interpreter = self.select_interpreter()
         print('Using interpreter: %s' % interpreter)
         self.process = subprocess.Popen(
-                [interpreter] + tagger_options,
+                interpreter + tagger_options,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=None,
@@ -346,6 +349,12 @@ class Tagger:
 
     def tag(self, s):
         with self.lock:
+            if not self.process:
+                self.start()
+            try:
+                self.process.stdin.write('')
+            except IOError:
+                self.start()
             self.process.stdin.write(s + '\n')
             self.process.stdin.flush()
             return self.process.stdout.readline()
