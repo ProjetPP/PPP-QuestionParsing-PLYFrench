@@ -306,7 +306,7 @@ class Tagger:
                 [interpreter] + tagger_options,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
+                stderr=None,
                 universal_newlines=True)
 
     def tag(self, s):
