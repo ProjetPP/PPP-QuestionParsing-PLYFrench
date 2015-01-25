@@ -60,7 +60,7 @@ def t_PONCTUATION(t):
     return None
 
 def t_MOT_INTERROGATIF(t):
-    '''[^ ]*_(ADVWH|ADJWH|PROWH) '''
+    '''[^ ]*_(ADVWH|ADJWH|PROWH|DETWH) '''
     t.value = MotInterrogatif(t.value.rsplit('_', 1)[0])
     return t
 def t_DETERMINANT(t):

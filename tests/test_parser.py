@@ -16,6 +16,8 @@ class ParserTestCase(unittest.TestCase):
                 T(R('France'), R('président'), M()))
         self.assertEqual(parser.parse('Qui est le président de la France ?'),
                 T(R('France'), R('président'), M()))
+        self.assertEqual(parser.parse('Quelle est la capitale de la France ?'),
+                T(R('France'), R('capitale'), M()))
 
     def testManyComplements(self):
         self.assertEqual(parser.parse('Qui est le président des États-Unis ?'),
