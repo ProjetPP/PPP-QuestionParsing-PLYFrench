@@ -8,7 +8,7 @@ python:
   - pypy3
 
 install:
-  - pip install scrutinizer-ocular coverage webtest httmock requests ppp_datamodel ppp_libmodule nltk
+  - pip install scrutinizer-ocular coverage webtest httmock requests ppp_datamodel ppp_libmodule nltk ply
 
 before_script:
   - ./get_dependencies.sh

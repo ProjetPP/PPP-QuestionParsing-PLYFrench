@@ -24,6 +24,8 @@ setup(
         'Topic :: Software Development :: Libraries',
     ],
     install_requires=[
+        'ply',
+        'nltk',
         'ppp_datamodel>=0.6',
         'ppp_libmodule>=0.7',
     ],
