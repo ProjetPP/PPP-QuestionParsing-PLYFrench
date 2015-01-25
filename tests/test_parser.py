@@ -42,3 +42,5 @@ class ParserTestCase(unittest.TestCase):
     def testLocation(self):
         self.assertEqual(parser.parse('Où est la France ?'),
                 T(R('France'), R('localisation'), M()))
+        self.assertEqual(parser.parse('Où est la capitale de la France ?'),
+                T(T(R('France'), R('capitale'), M()), R('localisation'), M()))
