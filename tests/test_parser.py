@@ -36,6 +36,12 @@ class ParserTestCase(unittest.TestCase):
                 T(R('huître'), R('auteur'), M()))
         self.assertEqual(parser.parse('Qui est l\'auteur de Le Pain ?'),
                 T(R('Pain'), R('auteur'), M()))
+        self.assertEqual(parser.parse('Quel est l’âge de Obama ?'),
+                T(R('Obama'), R('âge'), M()))
+        self.assertEqual(parser.parse('Quel est âge d’Obama ?'),
+                T(R('Obama'), R('âge'), M()))
+        self.assertEqual(parser.parse('Quel est l’âge d’Obama ?'),
+                T(R('Obama'), R('âge'), M()))
 
     def testQuotes(self):
         self.assertEqual(parser.parse('Qui a écrit « Le Petit Prince » ?'),

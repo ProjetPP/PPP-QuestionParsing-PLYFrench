@@ -4,7 +4,7 @@ import threading
 import subprocess
 from ply import lex, yacc
 from nltk.corpus import wordnet
-from collections import namedtuple
+from collections import namedtuple, deque
 
 from ppp_datamodel import Resource, Triple, Missing
 
@@ -20,6 +20,14 @@ FORMS_AVOIR = frozenset(filter(bool, '''
         avions aviez avaient
         '''.split(' ')))
 
+class CoolLexToken(lex.LexToken):
+    """LexToken with a constructor."""
+    def __init__(self, type, value, lineno, lexpos):
+        self.type = type
+        self.value = value
+        self.lineno = lineno
+        self.lexpos = lexpos
+
 def is_etre(v):
     if v.lower() in FORMS_ETRE:
         return True
@@ -33,21 +41,25 @@ def is_avoir(v):
 
 class Nom(str):
     pass
-class Determinant(str):
+class Pronom(str):
+    pass
+class Article(str):
     pass
 class IntroCompl(str):
     pass
 class Verbe(str):
     pass
-class VerbeSujet(namedtuple('_VS', 'verbe sujet')):
+class TokenList(tuple):
     pass
 class MotInterrogatif(str):
     pass
 class Hole:
     pass
 
-tokens = ('MOT_INTERROGATIF', 'DETERMINANT', 'NOM', 'VERBE',
-        'VERBE_SUJET', 'INTRO_COMPL', 'GROUPE_NOMINAL',
+tokens = ('TOKENLIST',
+        'INTRO_COMPL', 
+        'MOT_INTERROGATIF', 'ARTICLE', 'NOM', 'VERBE',
+        'GROUPE_NOMINAL', 'PRONOM',
         )
 
 t_ignore = ' \n'
@@ -63,63 +75,121 @@ def t_MOT_INTERROGATIF(t):
     '''[^ ]*_(ADVWH|ADJWH|PROWH|DETWH) '''
     t.value = MotInterrogatif(t.value.rsplit('_', 1)[0])
     return t
-def t_DETERMINANT(t):
-    '''[^ ]*_DET '''
-    t.value = Determinant(t.value.rsplit('_', 1)[0])
+def t_intro_compl_simpl(t):
+    '''(de|des|du)_P[ ]'''
+    t.type = 'INTRO_COMPL'
+    t.value = IntroCompl(t.value.rsplit('_', 1)[0])
+    return t
+def t_intro_compl_apostrophe(t):
+    '''d['’]'''
+    t.type = 'INTRO_COMPL'
+    t.value = IntroCompl('d')
+    return t
+def t_ARTICLE(t):
+    '''[^ ]*(?<!\bde)_DET '''
+    if t.value.startswith('l’') or t.value.startswith('l\''):
+        # Stupid taggger:
+        # * Quel_ADJWH est_V l’âge_NC de_P Obama_NPP ?_PUNC
+        # * Quel_ADJWH est_V l’âge_DET d’Obama_NPP ?_PUNC
+        t.type = 'GROUPE_NOMINAL'
+        t.value = GroupeNominal(Article('l'), [], Nom(t.value.rsplit('_', 1)[0][2:]))
+    else:
+        t.value = Article(t.value.rsplit('_', 1)[0])
+    return t
+def t_PRONOM(t):
+    '''[^ ]*(?<! des)_P[ ]'''
+    t.value = Pronom(t.value.rsplit('_', 1)[0])
+    return t
+def t_GROUPE_NOMINAL(t): # Stupid tagger
+    '''[^ ]*['’][^ ]*_(VINF|ADJ|NC) '''
+    v = t.value.rsplit('_', 1)[0]
+    (det, noun) = v.replace('’', '\'').split('\'', 1)
+    t.value = GroupeNominal(Article(det), [], Nom(noun))
+    return t
+def t_NOM_complement(t):
+    '''d[’'](?P<content>[^ ]*)_(N|NC|NPP)[ ]'''
+    t.type = 'TOKENLIST'
+    t.value = TokenList([
+        LexToken('INTRO_COMPL', IntroCompl('d'), t.lineno, t.lexpos),
+        LexToken('NOM', Nom(lexer.lexmatch.group('content')), t.lineno, t.lexpos),
+        ])
     return t
 def t_NOM(t):
     '''[^ ]*_(N|NC|NPP)[ ]'''
+    assert not t.value.startswith('d’') and not t.value.startswith('d\'')
     t.value = Nom(t.value.rsplit('_', 1)[0])
     return t
 def t_quotes(t):
     '''"_PUNC (?P<content>[^"]*) "_PUNC'''
     t.type = 'NOM'
     c = lexer.lexmatch.group('content')
-    t.value = ' '.join(x.rsplit('_', 1)[0] for x in c.split(' ')).strip()
+    t.value = Nom(' '.join(x.rsplit('_', 1)[0] for x in c.split(' ')).strip())
     return t
 def t_VERBE(t):
     '''[^ -]*_(V|VPP)[ ]'''
     t.value = Verbe(t.value.rsplit('_', 1)[0])
     return t
-def t_VERBE_SUJET(t):
+def t_verbe_sujet(t):
     '''[^ ]*-[^ ]*_VPP '''
+    t.type = 'TOKENLIST'
     t.value = t.value.rsplit('_', 1)[0]
     (verb, noun) = t.value.split('-', 1)
-    t.value = VerbeSujet(Verbe(verb), Nom(noun))
-    return t
-def t_INTRO_COMPL(t):
-    '''[^ ]*_P '''
-    t.value = IntroCompl(t.value.rsplit('_', 1)[0])
-    return t
-def t_GROUPE_NOMINAL(t): # Stupid tagger
-    '''[^ ]*['’][^ ]*_(VINF|ADJ) '''
-    t.value = t.value.rsplit('_', 1)[0]
-    (det, noun) = t.value.replace('’', '\'').split('\'', 1)
-    t.value = GroupeNominal(Determinant(det), [], Nom(noun))
+    t.value = TokenList([
+        CoolLexToken('VERBE', Verbe(verb), t.lineno, t.lexpos),
+        CoolLexToken('PRONOM', Nom(noun), t.lineno, t.lexpos),
+        ])
     return t
 
-lexer = lex.lex()
+class DecomposingLexer:
+    def __init__(self):
+        self._backend = lex.lex()
+        self._buffer = deque()
+
+    def input(self, s):
+        self._backend.input(s)
+
+    def _token(self):
+        if self._buffer:
+            return self._buffer.popleft()
+        else:
+            token = self._backend.token()
+            if token and isinstance(token.value, TokenList):
+                self._buffer.extend(token.value[1:])
+                return token.value[0]
+            else:
+                return token
+
+    def token(self):
+        t = self._token()
+        assert not isinstance(t, TokenList), t
+        return t
+
+    @property
+    def lexmatch(self):
+        return self._backend.lexmatch
+
+lexer = DecomposingLexer()
 
 precedence = (
         ('right', 'INTRO_COMPL'),
         )
 
-class GroupeNominal(namedtuple('_GN', 'determinant qualificateurs nom')):
+class GroupeNominal(namedtuple('_GN', 'article qualificateurs nom')):
     pass
 
-def det_to_subject(det):
+def det_to_resource(det):
     det = det.lower()
     if det in ('mon', 'ma', 'mes', 'me', 'je', 'moi'):
-        return Resource('je')
+        return Resource('moi')
     elif det in ('ton', 'ta', 'tes', 'te', 'tu', 'toi'):
         return Resource('toi')
     elif det in ('son', 'sa', 'ses', 'lui', 'elle', 'il', 'iel'):
-        return Resource('iel')
+        return Resource('ellui')
     else:
         return None
 def gn_to_subject(gn):
-    if gn.determinant:
-        return det_to_subject(gn.determinant)
+    if gn.article:
+        return det_to_resource(gn.article)
     else:
         return None
 def gn_to_triple(gn):
@@ -181,14 +251,14 @@ def p_groupe_nominal_gn(t):
     '''groupe_nominal : GROUPE_NOMINAL'''
     t[0] = t[1]
 def p_groupe_nominal_simple(t):
-    '''groupe_nominal_simple : DETERMINANT NOM'''
+    '''groupe_nominal_simple : ARTICLE NOM'''
     t[0] = GroupeNominal(t[1], [], t[2])
 def p_groupe_nominal_base(t):
     '''groupe_nominal : groupe_nominal_simple'''
     t[0] = t[1]
 def p_groupe_nominal_det_nom_compl(t):
     '''groupe_nominal : groupe_nominal INTRO_COMPL groupe_nominal'''
-    t[0] = GroupeNominal(t[1].determinant, [t[3]], t[1].nom)
+    t[0] = GroupeNominal(t[1].article, [t[3]], t[1].nom)
 
 def p_question_verb_first(t):
     '''question : MOT_INTERROGATIF verbe groupe_nominal'''
@@ -213,11 +283,12 @@ def p_question_verb_first(t):
         assert False, word
 
 def p_question_noun_first(t):
-    '''question : MOT_INTERROGATIF NOM VERBE_SUJET'''
+    '''question : MOT_INTERROGATIF NOM VERBE PRONOM'''
     word = t[1].lower()
     if word in ('quel', 'quelle', 'qui'):
-        if is_avoir(t[3].verbe) or is_etre(t[3].verbe):
-            t[0] = Triple(det_to_subject(t[3].sujet),
+        if is_avoir(t[3]) or is_etre(t[3]):
+            t[0] = Triple(
+                    det_to_resource(t[4]),
                     noun_to_predicate(t[2]),
                     Missing())
         else:
