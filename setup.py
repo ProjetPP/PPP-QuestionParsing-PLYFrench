@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ppp_french_parser',
-    version='0.1.2',
+    version='0.1.3',
     description='Parser of the French language for the PPP.',
     url='https://github.com/ProjetPP',
     author='Valentin Lorentz',
