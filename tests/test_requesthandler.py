@@ -4,8 +4,8 @@ from ppp_libmodule.tests import PPPTestCase
 from ppp_french_parser import app
 
 class TestFrenchParser(PPPTestCase(app)):
-    config_var = 'PPP_FRENCHPARSER'
-    config = ''
+    config_var = 'PPP_FRENCHPARSER_CONFIG'
+    config = '{"class_path": "stanford-postagger-full-2014-10-26/stanford-postagger.jar"}'
     def testBasics(self):
         q = Request('1', 'fr', Sentence('Quelle est la date de naissance d’Obama ?'), {}, [])
         r = self.request(q)

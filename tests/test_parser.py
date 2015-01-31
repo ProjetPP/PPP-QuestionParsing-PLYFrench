@@ -1,12 +1,15 @@
 from pprint import pprint
-import unittest
+from ppp_libmodule.tests import PPPTestCase
 from ppp_datamodel import Resource as R
 from ppp_datamodel import Triple as T
 from ppp_datamodel import Missing as M
 
 from ppp_french_parser import parser
+from ppp_french_parser import app
 
-class ParserTestCase(unittest.TestCase):
+class ParserTestCase(PPPTestCase(app)):
+    config_var = 'PPP_FRENCHPARSER_CONFIG'
+    config = '{"class_path": "stanford-postagger-full-2014-10-26/stanford-postagger.jar"}'
     def testBase(self):
         self.assertEqual(parser.parse('Quel est ton nom ?'),
                 T(R('toi'), R('nom'), M()))

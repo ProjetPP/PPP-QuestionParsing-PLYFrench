@@ -8,6 +8,8 @@ from collections import namedtuple, deque
 
 from ppp_datamodel import Resource, Triple, Missing
 
+from .config import Config
+
 class ParserException(Exception):
     pass
 
@@ -319,7 +321,6 @@ interpreters = [
 
 tagger_options = [
         '-mx300m',
-        '-classpath', 'stanford-postagger-full-2014-10-26/stanford-postagger.jar',
         'edu.stanford.nlp.tagger.maxent.MaxentTagger', '-model',
         'stanford-postagger-full-2014-10-26/models/french.tagger',
         ]
@@ -340,8 +341,9 @@ class Tagger:
     def start(self):
         interpreter = self.select_interpreter()
         print('Using interpreter: %s' % interpreter)
+        class_path = ['-classpath', Config().class_path]
         self.process = subprocess.Popen(
-                interpreter + tagger_options,
+                interpreter + class_path + tagger_options,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=None,
