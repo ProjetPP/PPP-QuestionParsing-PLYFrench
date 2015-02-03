@@ -5,7 +5,10 @@ from ppp_french_parser import app
 
 class TestFrenchParser(PPPTestCase(app)):
     config_var = 'PPP_FRENCHPARSER_CONFIG'
-    config = '{"class_path": "stanford-postagger-full-2014-10-26/stanford-postagger.jar"}'
+    config = """{
+        "class_path": "stanford-postagger-full-2014-10-26/stanford-postagger.jar",
+        "model": "stanford-postagger-full-2014-10-26/models/french.tagger"
+    }"""
     def testBasics(self):
         q = Request('1', 'fr', Sentence('Quelle est la date de naissance d’Obama ?'), {}, [])
         r = self.request(q)

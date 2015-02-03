@@ -321,8 +321,7 @@ interpreters = [
 
 tagger_options = [
         '-mx300m',
-        'edu.stanford.nlp.tagger.maxent.MaxentTagger', '-model',
-        'stanford-postagger-full-2014-10-26/models/french.tagger',
+        'edu.stanford.nlp.tagger.maxent.MaxentTagger',
         ]
 class Tagger:
     """Runs an instance of a POS tagger and provides it through the 'tag'
@@ -342,8 +341,9 @@ class Tagger:
         interpreter = self.select_interpreter()
         print('Using interpreter: %s' % interpreter)
         class_path = ['-classpath', Config().class_path]
+        model = ['-model', Config().model]
         self.process = subprocess.Popen(
-                interpreter + class_path + tagger_options,
+                interpreter + class_path + tagger_options + model,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=None,

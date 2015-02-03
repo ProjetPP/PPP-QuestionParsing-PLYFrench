@@ -9,7 +9,10 @@ from ppp_french_parser import app
 
 class ParserTestCase(PPPTestCase(app)):
     config_var = 'PPP_FRENCHPARSER_CONFIG'
-    config = '{"class_path": "stanford-postagger-full-2014-10-26/stanford-postagger.jar"}'
+    config = """{
+        "class_path": "stanford-postagger-full-2014-10-26/stanford-postagger.jar",
+        "model": "stanford-postagger-full-2014-10-26/models/french.tagger"
+    }"""
     def testBase(self):
         self.assertEqual(parser.parse('Quel est ton nom ?'),
                 T(R('toi'), R('nom'), M()))
