@@ -355,6 +355,7 @@ class Tagger:
                 self.start()
             try:
                 self.process.stdin.write('')
+                self.process.stdin.flush()
             except IOError:
                 self.start()
             self.process.stdin.write(s + '\n')
